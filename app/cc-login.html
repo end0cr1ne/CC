@@ -1,0 +1,29 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<dom-module id="cc-login">
+    <template>
+        <form is="iron-form" id="form" method="post" action="http://localhost:3000/login">
+            <paper-input label="Username" name="username" required auto-validate error-message="Can't be empty!"></paper-input>
+            <paper-input label="Password" name="password" type="password" required auto-validate error-message="Can't be empty!">
+                <paper-icon-button icon="chevron-right" onclick="document.querySelector('form').submit()" suffix></paper-icon-button>
+            </paper-input>
+        </form>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'cc-login',
+            listeners: {
+                'iron-form-response':'handler'
+            },
+            handler:function(e){
+                console.dir(e.detail.response);
+                if(!('err' in e.detail.response))
+                localStorage.setItem('token',e.detail.response.token)
+            }
+        })
+    </script>
+</dom-module>

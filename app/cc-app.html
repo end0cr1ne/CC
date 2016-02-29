@@ -1,0 +1,90 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="cc-workspace.html">
+<link rel="import" href="cc-drawer-toolbar.html">
+<link rel="import" href="cc-explorer.html">
+<link rel="import" href="cc-main-toolbar.html">
+<link rel="import" href="../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<dom-module id="cc-app">
+    <style>
+        paper-drawer-panel {
+            --paper-drawer-panel-main-container: {
+                background-color: var(--paper-grey-500);
+            };
+        }
+
+        paper-drawer-panel {
+            --paper-drawer-panel-left-drawer-container: {
+                background-color: var(--paper-grey-600);
+            };
+        }
+    </style>
+    <template>
+        <paper-drawer-panel>
+            <paper-header-panel moode="waterfall" drawer>
+                <cc-drawer-toolbar class="paper-header"></cc-drawer-toolbar>
+                <cc-explorer dir="{{currentProject}}"></cc-explorer>
+            </paper-header-panel>
+
+            <paper-header-panel main>
+                <cc-main-toolbar selected="{{selected}}" open="{{open}}" class="paper-header"></cc-main-toolbar>
+                <cc-workspace class="fit" open="{{open}}" selected="{{selected}}"></cc-workspace>
+            </paper-header-panel>
+        </paper-drawer-panel>
+    </template>
+    <script>
+        Polymer({
+            is: 'cc-app',
+            listeners: {
+                'open': 'openFile'
+            },
+            ready: function () {
+                var remote = require('remote');
+                var Window = remote.BrowserWindow;
+                if(localStorage.getItem('currentProject')!=null)
+                this.currentProject = localStorage.getItem('currentProject');
+                else{
+                    var newProjectDialog = new Window({height: 250, width: 500});
+                    newProjectDialog.loadURL('file:///' + __dirname + '/newProject.html');
+                }
+
+                this.open=[];
+                this.selected=0;
+               /* this.open = [{
+                    doc: 'tp1.js'
+                }, {
+                    doc: 'tp2.js'
+                }, {
+                    doc: 'tp3.js'
+                }];
+                this.selected = 0;*/
+
+                if (localStorage.getItem('token') == null && this.login == null) {
+                    this.login = new Window({height: 250, width: 500});
+                    this.login.loadURL('file:///' + __dirname + '/login.html');
+                }
+                window.addEventListener('contextmenu', function (e) {
+                    console.log(e);
+                    if (e.target.className.indexOf('directory')!=-1) {
+                        var remote = require('remote');
+                        var Window = remote.BrowserWindow;
+                        var addD = new Window({height: 250, width: 500});
+                        addD.loadURL('file:///' + __dirname + '/new.html');
+                        console.log(addD);
+                        addD.webContents.on('did-finish-load', function() {
+                         addD.webContents.send('path', e.target.dataPath);
+                         });
+                    }
+                }, false);
+            },
+            openFile: function (e) {
+                var path = require('path');
+                if (e.detail.path != null)
+                    this.push('open', {doc: e.detail.path});
+                console.log(this.open);
+            }
+        });
+    </script>
+</dom-module>

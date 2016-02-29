@@ -1,0 +1,128 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../bower_components/paper-menu/paper-submenu.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/paper-material/paper-material.html">
+
+<dom-module id="cc-explorer">
+    <style>
+        .icon {
+            width: 1em;
+        }
+
+        paper-submenu paper-menu {
+            margin-left: 1em;
+        }
+    </style>
+    <template>
+        <paper-material>
+            <paper-menu>
+                <template is="dom-repeat" items="{{files}}" as="file">
+                    <template is="dom-if" if="{{file.isDir}}">
+                        <paper-submenu>
+                            <paper-item class="menu-trigger directory" data-path="{{file.rpath}}"><img
+                                    src="{{file.img}}" class="icon">
+                                <paper-item-body>&nbsp;{{file.name}}</paper-item-body>
+                            </paper-item>
+                            <cc-explorer dir="{{file.path}}" class="menu-content"></cc-explorer>
+                        </paper-submenu>
+                    </template>
+                    <template is="dom-if" if="{{!file.isDir}}">
+                        <paper-item data-path="{{file.rpath}}"><img src="{{file.img}}" class="icon">
+                            <paper-item-body>&nbsp;{{file.name}}</paper-item-body>
+                        </paper-item>
+                    </template>
+                </template>
+            </paper-menu>
+        </paper-material>
+    </template>
+    <script>
+        var fs = require('fs');
+        var path = require('path');
+        var mime = require('mime');
+        Array.prototype.diff = function (a) {
+            return this.filter(function (i) {
+                if (a.filter(function (j) {
+                            return j.name == i.name;
+                        }).length > 0) return false;
+                return true;
+            });
+        };
+
+        Polymer({
+            is: 'cc-explorer',
+            properties: {
+                dir: String,
+                files: {
+                    type: Array,
+                    computed: 'computeTree(dir)'
+                }
+            },
+            observers: [
+                'watch(dir)'
+            ],
+            listeners: {
+                'iron-select': 'open'
+            },
+            watch: function (dir) {
+                var self = this;
+                console.dir(dir);
+                fs.watch(dir, {persistent: true, recursive: false}, function (event, name) {
+                    if (event == 'rename') {
+                        //self.files=self.computeTree(self.dir);
+                        console.log(self.computeTree(self.dir).diff(self.files));
+                        self.push('files', self.computeTree(self.dir).diff(self.files)[0]);
+
+                    }
+                    console.log(event, name);
+                });
+            },
+            computeTree: function (dir) {
+                try {
+                    var files = fs.readdirSync(dir);
+                    return (function (files) {
+                        for (var i = 0; i < files.length; ++i) {
+                            files[i] = (function () {
+                                console.log(dir, files[i]);
+                                var fpath = path.join(dir, files[i]);
+                                var file = {
+                                    path: fpath,
+                                    rpath: fpath.substr(fpath.indexOf(localStorage.getItem('currentProject')) + localStorage.getItem('currentProject').length),
+                                    name: path.basename(files[i])
+                                };
+                                if (fs.statSync(fpath).isDirectory()) {
+                                    file.isDir = true;
+                                    file.img = 'icons/img.png'
+                                }
+                                else {
+                                    try {
+                                        fs.statSync('icons/' + path.extname(fpath).substr(1) + '.png');
+                                        file.img = 'icons/' + path.extname(fpath).substr(1) + '.png';
+                                    } catch (err) {
+                                        if (mime.lookup(fpath).search('image') != -1)file.img = 'icons/img.png';
+                                        else if (mime.lookup(fpath).search('video') != -1)file.img = 'icons/video.png';
+                                        else {
+                                            file.img = 'icons/generic.png';
+                                        }
+                                    }
+                                }
+                                return file;
+                            })();
+                        }
+                        return files;
+                    })(files);
+                } catch (err) {
+                    console.error(err);
+                }
+                if (this.init == undefined)
+                    this.init = true;
+            },
+            open: function (e) {
+                //console.log(e.detail.item.dataPath);
+                this.fire('open', {path: e.detail.item.dataPath});
+            }
+        });
+
+    </script>
+</dom-module>
