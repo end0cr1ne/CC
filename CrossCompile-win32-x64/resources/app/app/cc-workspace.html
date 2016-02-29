@@ -1,0 +1,28 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="cc-editor.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+
+<dom-module id="cc-workspace">
+
+    <template>
+        <iron-pages selected="{{selected}}">
+            <template is="dom-repeat" items="{{open}}">
+                <cc-editor id="{{index}}" doc="{{item.doc}}"></cc-editor>
+            </template>
+        </iron-pages>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'cc-workspace',
+            properties:{
+                open: Array,
+                selected: {
+                    type: Number,
+                    reflectToAttribute: true,
+                    notify: true
+                }
+            }
+        });
+    </script>
+</dom-module>

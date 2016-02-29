@@ -1,0 +1,11 @@
+function (username, password, cb) {
+      self.findByUsername(username, true, function(err, user) {
+        if (err) { return cb(err); }
+
+        if (user) {
+          return user.authenticate(password, cb);
+        } else {
+          return cb(null, false, new errors.IncorrectUsernameError(options.errorMessages.IncorrectUsernameError));
+        }
+      });
+    }

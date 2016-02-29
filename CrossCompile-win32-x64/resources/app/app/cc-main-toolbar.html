@@ -1,0 +1,70 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tab.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+
+<dom-module id="cc-main-toolbar">
+    <style>
+        paper-toolbar {
+            --paper-toolbar: {
+                background: var(--paper-grey-800);
+                color: var(--paper-grey-400);
+            };
+        }
+
+        paper-tab {
+            --paper-tab: {
+                @apply(--paper-font-subhead);
+            };
+        }
+
+        paper-tabs {
+            --paper-tabs-selection-bar-color: var(--paper-grey-500);
+        }
+
+        paper-icon-button {
+            margin-left: auto;
+        }
+
+        span.title {
+            margin-left: 5%;
+        }
+    </style>
+    <template>
+        <paper-toolbar>
+            <paper-icon-button icon="menu" paper-drawer-toggle></paper-icon-button>
+            <paper-tabs class="bottom fit" selected="{{selected}}" noink>
+                <template is="dom-repeat" items="{{open}}">
+                    <paper-tab><span class="title">{{item.doc}}</span>
+                        <paper-icon-button data-doc="{{index}}" on-tap="close" icon="close"></paper-icon-button>
+                    </paper-tab>
+                </template>
+            </paper-tabs>
+        </paper-toolbar>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'cc-main-toolbar',
+            properties: {
+                open: {
+                    type: Array,
+                    reflectToAttribute: true,
+                    notify: true
+                },
+                selected: {
+                    type: Number,
+                    reflectToAttribute: true,
+                    notify: true
+                }
+            },
+            close: function(e){
+                console.log(e.target.offsetParent.dataDoc);
+                this.splice('open',e.target.offsetParent.dataDoc,1);
+            }
+        });
+
+    </script>
+</dom-module>

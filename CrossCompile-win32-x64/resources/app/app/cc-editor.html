@@ -1,0 +1,142 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="stylesheet" href="../codemirror-5.9/lib/codemirror.css">
+<link rel="stylesheet" href="../codemirror-5.9/theme/material.css">
+<link rel="stylesheet" href="../codemirror-5.9/addon/hint/show-hint.css">
+<script src="../codemirror-5.9/lib/codemirror.js"></script>
+<script src="../codemirror-5.9/mode/javascript/javascript.js"></script>
+<script src="../codemirror-5.9/addon/hint/show-hint.js"></script>
+<script src="../codemirror-5.9/addon/hint/javascript-hint.js"></script>
+<script src="../codemirror-5.9/addon/hint/javascript-hint.js"></script>
+<script src="https://cdn.socket.io/socket.io-1.3.0.js"></script>
+<script src="../js/ot.js"></script>
+
+<dom-module id="cc-editor">
+    <style>
+        #editor {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+        }
+    </style>
+    <template>
+        <div id="editor"></div>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'cc-editor',
+            properties: {
+                doc: String
+            },
+            ready: function () {
+                var fs = require('fs');
+                var path = require('path');
+                var cm = CodeMirror(this.$.editor, {
+                    value: 'loading...',
+                    mode: 'javascript',
+                    lineNumbers: true,
+                    theme: 'material',
+                    extraKeys: {
+                        'Alt': 'autocomplete'
+                    }
+                });
+
+                var self = this;
+                var selections = {};
+                var colours = {};
+                var ca = new ot.CodeMirrorAdapter(cm);
+                var CA = ot.CodeMirrorAdapter;
+                cm.on('changes', onUserChange);
+                cm.on('cursorActivity', onUserSelectionChange);
+                console.log(ot);
+
+                var jwt = localStorage.getItem('token');
+                var socket = io('http://localhost:3000/', {forceNew: true});
+
+                setInterval(function(){
+                 fs.writeFile(path.join(localStorage.getItem('currentProject'),self.doc),cm.getValue(),function(){console.log(self.doc,'saved')});
+                },5000);
+
+                socket.on('connect', function () {
+                    socket.on('authenticated', function () {
+                                console.log('Authenticated');
+                                socket.emit('init', self.doc);
+                            })
+                            .emit('authenticate', {token: jwt});
+                });
+
+                socket.on('project', function () {
+                    socket.emit('project', localStorage.getItem('currentProject'));
+                });
+
+                socket.on('conn', function (data) {
+                    console.log('Init: ', data);
+                    cm.swapDoc(CodeMirror.Doc(data.doc, 'javascript'));
+                    client.revision = data.revision;
+                });
+
+                socket.on('change', function (data) {
+                    onReceiveOperation(data);
+                });
+                socket.on('cursor', function (data) {
+                    onReceiveSelection(data);
+                });
+                socket.on('ack', function (data) {
+                    console.log('client: ack');
+                    client.serverAck();
+                });
+
+                var client = new ot.Client(0);
+                var dontSend = false, dontSendSelection = false;
+
+                client.applyOperation = function (operation) {
+                    console.log('apply OP');
+                    ca.applyOperation(operation);
+                };
+                client.sendOperation = function (revision, operation) {
+                    if (!dontSend) {
+                        console.log('send OP: ', operation.toJSON());
+                        socket.emit('change', revision, operation);
+                    } else dontSend = false;
+                };
+
+                function onUserChange(o, change) {
+                    var operation = CA.operationFromCodeMirrorChanges(change, cm);
+                    client.applyClient(operation[0]);
+                }
+
+                function onUserSelectionChange() {
+                    if (!dontSendSelection) {
+                        var selection = ca.getSelection();
+                        socket.emit('cursor', selection);
+                    } else dontSendSelection = false;
+                }
+
+                function onReceiveSelection(json) {
+                    var selection = ot.Selection.fromJSON(json.selection);
+                    dontSendSelection = true;
+                    selection = client.transformSelection(selection);
+                    if (selections[json.id])selections[json.id].clear();
+                    if (colours[json.id]==undefined) colours[json.id]='#'+ ('000000' + (Math.random()*0xFFFFFF<<0).toString(16)).slice(-6);
+                    selections[json.id] = ca.setOtherSelection(selection, colours[json.id], json.id);
+                }
+
+                function onReceiveOperation(json) {
+                    var operation = ot.TextOperation.fromJSON(json);
+                    dontSend = true;
+                    client.applyServer(operation);
+                }
+
+                var self = this;
+                window.setInterval(function () {
+                    var classList = self.className;
+                    if (classList.search('iron-selected') != -1) {
+                        cm.refresh();
+                    }
+                }, 10);
+            }
+        });
+    </script>
+</dom-module>
