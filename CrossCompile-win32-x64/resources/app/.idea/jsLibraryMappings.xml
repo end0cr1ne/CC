@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="JavaScriptLibraryMappings">
-    <file url="file://$PROJECT_DIR$" libraries="{CrossCompile node_modules}" />
-    <file url="PROJECT" libraries="{lock-6.6.5, lock-7.12, ot, socket.io-1.3.0}" />
-  </component>
-</project>
